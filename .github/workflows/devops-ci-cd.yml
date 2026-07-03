@@ -1,0 +1,202 @@
+name: Reusable CI/CD - Workflow for Build, Scan, Release, and Deploy
+
+# Application Platform owns the reusable workflow contract, job graph, permissions, and stage order.
+# DevOps-owned composite actions implement repeated step logic only.
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        type: string
+        required: true
+      java-version:
+        type: string
+        required: true
+      build-command:
+        type: string
+        required: true
+      artifact-name:
+        type: string
+        required: true      
+    secrets:
+      deployment-token:
+        required: false
+    outputs:
+      artifact-name:
+        description: Build artifact name used by downstream jobs.
+        value: ${{ jobs.build.outputs['artifact-name'] }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Platform - Build application
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ inputs['artifact-name'] }}
+      artifact-path: ${{ steps.build.outputs['artifact-path'] }}
+    permissions:
+      contents: read
+    steps:
+      - name: Platform - Checkout source
+        uses: actions/checkout@v6
+      - name: DevOps - Build artifact
+        id: build
+        uses: ./.github/actions/devops-build
+        with:
+          project-path: ${{ inputs['project-path'] }}
+          java-version: ${{ inputs['java-version'] }}
+          build-command: ${{ inputs['build-command'] }}
+          artifact-name: ${{ inputs['artifact-name'] }}
+      - name: Platform - Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs['artifact-name'] }}
+          path: ${{ steps.build.outputs['artifact-path'] }}
+          if-no-files-found: error
+
+#   scan:
+#     name: Platform - Scan artifact
+#     runs-on: ubuntu-latest
+#     needs: build
+#     outputs:
+#       scan-report: ${{ steps.scan.outputs['scan-report'] }}
+#     permissions:
+#       contents: read
+#       security-events: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: Platform - Download build artifact
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: ${{ needs.build.outputs['artifact-name'] }}
+#           path: downloaded-artifact
+#       - name: DevOps - Generate mock scan report
+#         id: scan
+#         uses: ./.github/actions/devops-scan-artifact
+#         with:
+#           artifact-name: ${{ needs.build.outputs['artifact-name'] }}
+#           artifact-path: downloaded-artifact
+#           scan-mode: mock
+#       - name: Platform - Upload mock scan report
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: ${{ inputs['artifact-name'] }}-scan-report
+#           path: ${{ steps.scan.outputs['scan-report'] }}
+#           if-no-files-found: error
+
+#   deploy-dev:
+#     name: Platform - Deploy DEV mock
+#     runs-on: ubuntu-latest
+#     needs: scan
+#     if: ${{ contains(inputs['target-environments'], 'DEV') }}
+#     environment: DEV
+#     outputs:
+#       deployment-summary: ${{ steps.deploy.outputs['deployment-summary'] }}
+#     permissions:
+#       contents: read
+#       id-token: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: DevOps - Mock deploy DEV
+#         id: deploy
+#         uses: ./.github/actions/devops-deploy-mock
+#         with:
+#           application-name: ${{ inputs['application-name'] }}
+#           artifact-name: ${{ inputs['artifact-name'] }}
+#           target-environment: DEV
+#           dry-run: ${{ inputs['dry-run'] }}
+
+#   deploy-qa:
+#     name: Platform - Deploy QA mock
+#     runs-on: ubuntu-latest
+#     needs: deploy-dev
+#     if: ${{ contains(inputs['target-environments'], 'QA') }}
+#     environment: QA
+#     outputs:
+#       deployment-summary: ${{ steps.deploy.outputs['deployment-summary'] }}
+#     permissions:
+#       contents: read
+#       id-token: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: DevOps - Mock deploy QA
+#         id: deploy
+#         uses: ./.github/actions/devops-deploy-mock
+#         with:
+#           application-name: ${{ inputs['application-name'] }}
+#           artifact-name: ${{ inputs['artifact-name'] }}
+#           target-environment: QA
+#           dry-run: ${{ inputs['dry-run'] }}
+
+#   deploy-perf:
+#     name: Platform - Deploy PERF mock
+#     runs-on: ubuntu-latest
+#     needs: deploy-qa
+#     if: ${{ contains(inputs['target-environments'], 'PERF') }}
+#     environment: PERF
+#     outputs:
+#       deployment-summary: ${{ steps.deploy.outputs['deployment-summary'] }}
+#     permissions:
+#       contents: read
+#       id-token: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: DevOps - Mock deploy PERF
+#         id: deploy
+#         uses: ./.github/actions/devops-deploy-mock
+#         with:
+#           application-name: ${{ inputs['application-name'] }}
+#           artifact-name: ${{ inputs['artifact-name'] }}
+#           target-environment: PERF
+#           dry-run: ${{ inputs['dry-run'] }}
+
+#   release:
+#     name: Platform - Release mock
+#     runs-on: ubuntu-latest
+#     needs: deploy-perf
+#     if: ${{ contains(inputs['target-environments'], 'Release') }}
+#     environment: Release
+#     outputs:
+#       deployment-summary: ${{ steps.deploy.outputs['deployment-summary'] }}
+#     permissions:
+#       contents: read
+#       id-token: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: DevOps - Mock release marker
+#         id: deploy
+#         uses: ./.github/actions/devops-deploy-mock
+#         with:
+#           application-name: ${{ inputs['application-name'] }}
+#           artifact-name: ${{ inputs['artifact-name'] }}
+#           target-environment: Release
+#           dry-run: ${{ inputs['dry-run'] }}
+
+#   deploy-prod:
+#     name: Platform - Deploy Prod mock
+#     runs-on: ubuntu-latest
+#     needs: release
+#     if: ${{ contains(inputs['target-environments'], 'Prod') }}
+#     environment: Prod
+#     outputs:
+#       deployment-summary: ${{ steps.deploy.outputs['deployment-summary'] }}
+#     permissions:
+#       contents: read
+#       id-token: write
+#     steps:
+#       - name: Platform - Checkout source
+#         uses: actions/checkout@v4
+#       - name: DevOps - Mock deploy Prod
+#         id: deploy
+#         uses: ./.github/actions/devops-deploy-mock
+#         with:
+#           application-name: ${{ inputs['application-name'] }}
+#           artifact-name: ${{ inputs['artifact-name'] }}
+#           target-environment: Prod
+#           dry-run: ${{ inputs['dry-run'] }}

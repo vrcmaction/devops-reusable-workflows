@@ -1,0 +1,61 @@
+name: DevOps - Build Java with Maven
+description: Prepare Java tooling, run the supplied Maven command, and expose the built jar path.
+
+inputs:
+  project-path:
+    description: Relative path to the Java project.
+    required: true
+  java-version:
+    description: Java version to provision on the runner.
+    required: true
+  build-command:
+    description: Build command supplied by the development-owned caller workflow.
+    required: true
+  artifact-name:
+    description: Artifact name used for downstream jobs.
+    required: true
+
+outputs:
+  artifact-path:
+    description: Relative path to the produced jar artifact.
+    value: ${{ steps.detect-artifact.outputs['artifact-path'] }}
+
+runs:
+  using: composite
+  steps:
+    - name: DevOps - Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs['java-version'] }}
+        cache: maven
+        cache-dependency-path: ${{ inputs['project-path'] }}/pom.xml
+
+    - name: DevOps - Run Maven command
+      shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs['project-path'] }}
+        BUILD_COMMAND: ${{ inputs['build-command'] }}
+      run: |
+        set -euo pipefail
+        test -n "$PROJECT_PATH"
+        test -d "$PROJECT_PATH"
+        cd "$PROJECT_PATH"
+        if [ -f ./mvnw ]; then
+          chmod +x ./mvnw
+        fi
+        eval "$BUILD_COMMAND"
+
+    - name: DevOps - Detect jar artifact
+      id: detect-artifact
+      shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs['project-path'] }}
+      run: |
+        set -euo pipefail
+        artifact_path="$(find "$PROJECT_PATH/target" -maxdepth 1 -type f -name '*.jar' ! -name '*sources.jar' ! -name '*javadoc.jar' | head -n 1)"
+        if [ -z "$artifact_path" ]; then
+          echo "No jar artifact found under $PROJECT_PATH/target" >&2
+          exit 1
+        fi
+        echo "artifact-path=$artifact_path" >> "$GITHUB_OUTPUT"
