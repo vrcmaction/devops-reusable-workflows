@@ -17,9 +17,6 @@ on:
       artifact-name:
         type: string
         required: true      
-    secrets:
-      personal_access_token:
-        required: true
     outputs:
       artifact-name:
         description: Build artifact name used by downstream jobs.
@@ -40,8 +37,7 @@ jobs:
     steps:
       - name: Platform - Checkout source
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.personal_access_token }}
+        
       - name: DevOps - Build artifact
         id: build
         uses: vrcmaction/devops-reusable-workflows/.github/actions/devops-build@master
