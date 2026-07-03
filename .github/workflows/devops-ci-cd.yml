@@ -40,6 +40,8 @@ jobs:
     steps:
       - name: Platform - Checkout source
         uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.MY_BUILD_PAT }}
       - name: DevOps - Build artifact
         id: build
         uses: vrcmaction/devops-reusable-workflows/.github/actions/devops-build@master
