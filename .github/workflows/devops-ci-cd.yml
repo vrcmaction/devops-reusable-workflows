@@ -20,10 +20,12 @@ on:
     secrets:
       deployment-token:
         required: false
+      personal_access_token:
+        required: true
     outputs:
       artifact-name:
         description: Build artifact name used by downstream jobs.
-        value: ${{ jobs.build.outputs['artifact-name'] }}
+        value: ${{ jobs.build.outputs['artifact-name'] }}      
 
 permissions:
   contents: read
