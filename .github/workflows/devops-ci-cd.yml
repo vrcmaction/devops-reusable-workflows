@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v6
       - name: DevOps - Build artifact
         id: build
-        uses: ./.github/actions/devops-build
+        uses: vrcmaction/devops-reusable-workflows/.github/actions/devops-build@master
         with:
           project-path: ${{ inputs['project-path'] }}
           java-version: ${{ inputs['java-version'] }}
