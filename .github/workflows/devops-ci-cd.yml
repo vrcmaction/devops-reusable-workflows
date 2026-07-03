@@ -18,11 +18,7 @@ on:
         type: string
         required: true      
     secrets:
-      deployment-token:
-        required: false
       personal_access_token:
-        required: true
-      token:
         required: true
     outputs:
       artifact-name:
@@ -45,7 +41,7 @@ jobs:
       - name: Platform - Checkout source
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.MY_BUILD_PAT }}
+          token: ${{ secrets.personal_access_token }}
       - name: DevOps - Build artifact
         id: build
         uses: vrcmaction/devops-reusable-workflows/.github/actions/devops-build@master
