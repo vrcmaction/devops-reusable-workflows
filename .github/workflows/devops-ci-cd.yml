@@ -1,7 +1,3 @@
-name: Reusable CI/CD - Workflow for Build, Scan, Release, and Deploy
-
-# Application Platform owns the reusable workflow contract, job graph, permissions, and stage order.
-# DevOps-owned composite actions implement repeated step logic only.
 on:
   workflow_call:
     inputs:
@@ -46,8 +42,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
-        
+        uses: actions/checkout@v6        
       - name: Build artifact
         id: build
         uses: vrcmaction/devops-reusable-workflows/.github/actions/devops-build@master
