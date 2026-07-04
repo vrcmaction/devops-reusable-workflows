@@ -59,7 +59,7 @@ jobs:
           if-no-files-found: error
 
   scan:
-    name: Platform - Scan artifact
+    name: SCAN
     runs-on: ubuntu-latest
     needs: prebuild
     steps:
