@@ -37,8 +37,7 @@ jobs:
       - name: ecr-tag-check
         run: echo "Checking ECR tag..."
   build:
-    name: BUILD
-    needs: prebuild
+    name: BUILD    
     runs-on: ubuntu-latest
     outputs:
       artifact-name: ${{ inputs['artifact-name'] }}
